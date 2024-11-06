@@ -22,11 +22,14 @@ protected:
 	bool render();
 	void depthPass();
 	void finalPass();
+	void firstPass();
 	void gui();
 
 private:
 	TextureShader* textureShader;
 	PlaneMesh* mesh;
+	OrthoMesh* orthoMesh;
+	RenderTexture* renderTexture;
 
 	Light* light;
 	AModel* model;

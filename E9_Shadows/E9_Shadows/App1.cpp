@@ -12,7 +12,7 @@ void App1::init(HINSTANCE hinstance, HWND hwnd, int screenWidth, int screenHeigh
 	// Call super/parent init function (required!)
 	BaseApplication::init(hinstance, hwnd, screenWidth, screenHeight, in, VSYNC, FULL_SCREEN);
 
-	// Create Mesh object and shader object
+	// Create Mesh object and shader object`
 	mesh = new PlaneMesh(renderer->getDevice(), renderer->getDeviceContext());
 	model = new AModel(renderer->getDevice(), "res/teapot.obj");
 	textureMgr->loadTexture(L"brick", L"res/brick1.dds");
@@ -21,6 +21,9 @@ void App1::init(HINSTANCE hinstance, HWND hwnd, int screenWidth, int screenHeigh
 	textureShader = new TextureShader(renderer->getDevice(), hwnd);
 	depthShader = new DepthShader(renderer->getDevice(), hwnd);
 	shadowShader = new ShadowShader(renderer->getDevice(), hwnd);
+
+	orthoMesh = new OrthoMesh(renderer->getDevice(), renderer->getDeviceContext(), screenWidth / 2, screenHeight / 2, -screenWidth /2 , screenHeight / 2);
+	renderTexture = new RenderTexture(renderer->getDevice(), screenWidth, screenHeight, SCREEN_NEAR, SCREEN_DEPTH);
 
 	// Variables for defining shadow map
 	int shadowmapWidth = 1024;
@@ -73,7 +76,8 @@ bool App1::frame()
 
 bool App1::render()
 {
-
+	//renderTexture->setRenderTarget(renderer->getDeviceContext());
+	//renderTexture->clearRenderTarget(renderer->getDeviceContext(), 1.0f, 0.0f, 0.0f, 1.0f);
 	// Perform depth pass
 	depthPass();
 	// Render scene
@@ -139,6 +143,20 @@ void App1::finalPass()
 	model->sendData(renderer->getDeviceContext());
 	shadowShader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, viewMatrix, projectionMatrix, textureMgr->getTexture(L"brick"), shadowMap->getDepthMapSRV(), light);
 	shadowShader->render(renderer->getDeviceContext(), model->getIndexCount());
+
+	/// ---
+	renderer->setZBuffer(false);
+
+	XMMATRIX orthoMatrix = renderer->getOrthoMatrix();  // ortho matrix for 2D rendering
+	XMMATRIX orthoViewMatrix = camera->getOrthoViewMatrix();	// Default camera position for orthographic rendering
+
+	orthoMesh->sendData(renderer->getDeviceContext());
+	textureShader->setShaderParameters(renderer->getDeviceContext(), worldMatrix, orthoViewMatrix, orthoMatrix, shadowMap->getDepthMapSRV());
+	textureShader->render(renderer->getDeviceContext(), orthoMesh->getIndexCount());
+
+	renderer->setZBuffer(true);
+
+	/// ---
 
 	gui();
 	renderer->endScene();
